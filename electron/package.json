@@ -1,0 +1,26 @@
+{
+  "name": "photobooth-kiosk",
+  "version": "1.0.0",
+  "description": "Photobooth Kiosk App",
+  "main": "src/main.js",
+  "scripts": {
+    "dev": "wait-on http://localhost:3001 && electron .",
+    "start": "electron .",
+    "build": "electron-builder"
+  },
+  "dependencies": {
+    "electron": "^28.0.0"
+  },
+  "devDependencies": {
+    "electron-builder": "^24.0.0",
+    "wait-on": "^7.0.0"
+  },
+  "build": {
+    "appId": "com.photobooth.kiosk",
+    "productName": "PhotoBooth",
+    "directories": { "output": "../dist" },
+    "win": { "target": "nsis" },
+    "mac": { "target": "dmg" },
+    "linux": { "target": "AppImage" }
+  }
+}

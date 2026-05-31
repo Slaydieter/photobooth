@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PhotoBooth Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#f5f4f1;--bg2:#eeecea;--surface:#fff;--border:#e0ddd8;
+  --text:#1a1a1a;--muted:#888580;--accent:#c9a84c;--accent-d:#8a6b28;
+  --accent-g:rgba(201,168,76,0.12);--danger:#d94f4f;--success:#3d9e6a;
+  --r:10px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);font-size:14px}
+button,input,select,textarea{font-family:inherit}
+.app{display:flex;height:100vh}
+
+/* Sidebar */
+.sidebar{width:220px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:24px 0}
+.logo{padding:0 20px 24px;border-bottom:1px solid var(--border);margin-bottom:16px}
+.logo h1{font-family:'Playfair Display',serif;font-size:1.2rem;color:var(--accent)}
+.logo p{font-size:.75rem;color:var(--muted);margin-top:2px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 20px;color:var(--muted);font-size:.875rem;font-weight:500;border-left:3px solid transparent;cursor:pointer;transition:all .15s}
+.nav-item:hover{color:var(--text);background:var(--bg)}
+.nav-item.active{color:var(--accent);border-left-color:var(--accent);background:var(--accent-g)}
+.nav-item svg{width:18px;height:18px;flex-shrink:0}
+
+/* Main */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.topbar{padding:14px 28px;border-bottom:1px solid var(--border);background:var(--surface);display:flex;align-items:center;justify-content:space-between}
+.topbar-title{font-size:1rem;font-weight:600}
+.content{flex:1;overflow-y:auto;padding:28px}
+
+/* Cards */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r)}
+.card-header{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.card-header h3{font-size:.9rem;font-weight:600}
+.card-body{padding:20px}
+
+/* Table */
+table{width:100%;border-collapse:collapse}
+th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--border);font-size:.875rem}
+th{color:var(--muted);font-weight:500;font-size:.75rem;text-transform:uppercase;letter-spacing:.05em}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--bg)}
+
+/* Buttons */
+.btn{padding:8px 16px;border-radius:6px;border:none;font-size:.875rem;font-weight:500;display:inline-flex;align-items:center;gap:6px;cursor:pointer;transition:all .15s}
+.btn-primary{background:var(--accent);color:#1a1200}.btn-primary:hover{background:#d4af57}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text)}.btn-ghost:hover{background:var(--bg2)}
+.btn-danger{background:var(--danger);color:#fff}.btn-danger:hover{opacity:.9}
+.btn-success{background:var(--success);color:#fff}.btn-success:hover{opacity:.9}
+.btn-sm{padding:5px 10px;font-size:.8rem}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* Form */
+.form-group{margin-bottom:16px}
+.form-label{display:block;font-size:.8rem;font-weight:500;color:var(--muted);margin-bottom:6px}
+.form-input{width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:.875rem;outline:none;transition:border-color .15s}
+.form-input:focus{border-color:var(--accent)}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.form-section{margin-bottom:24px;padding-bottom:24px;border-bottom:1px solid var(--border)}
+.form-section:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
+.form-section-title{font-size:.875rem;font-weight:600;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+
+/* Modal */
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:1000;backdrop-filter:blur(4px)}
+.modal{background:var(--surface);border-radius:var(--r);width:520px;max-width:90vw;max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+.modal-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--surface);z-index:1}
+.modal-header h3{font-size:.95rem;font-weight:600}
+.modal-close{background:none;border:none;font-size:1.2rem;color:var(--muted);cursor:pointer;padding:4px;line-height:1}
+.modal-body{padding:20px}
+.modal-footer{padding:16px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;position:sticky;bottom:0;background:var(--surface)}
+
+/* Badge */
+.badge{padding:2px 8px;border-radius:12px;font-size:.72rem;font-weight:500}
+.badge-success{background:rgba(61,158,106,.12);color:var(--success)}
+.badge-danger{background:rgba(217,79,79,.12);color:var(--danger)}
+.badge-warning{background:rgba(201,168,76,.15);color:var(--accent-d)}
+.badge-info{background:rgba(59,130,246,.12);color:#1d4ed8}
+
+/* Stats */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+.stat-card{padding:20px}
+.stat-num{font-size:2rem;font-weight:700;color:var(--accent)}
+.stat-label{font-size:.8rem;color:var(--muted);margin-top:4px}
+
+/* Image */
+.img-preview{width:56px;height:56px;border-radius:6px;object-fit:cover;border:1px solid var(--border)}
+.img-placeholder{width:56px;height:56px;border-radius:6px;background:var(--bg2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:.65rem;text-align:center}
+
+/* Toast */
+#toast{position:fixed;bottom:24px;right:24px;padding:12px 20px;border-radius:8px;font-size:.875rem;font-weight:500;transform:translateY(80px);opacity:0;transition:all .3s cubic-bezier(.34,1.56,.64,1);z-index:9999}
+#toast.show{transform:translateY(0);opacity:1}
+#toast.success{background:var(--success);color:#fff}
+#toast.error{background:var(--danger);color:#fff}
+#toast.info{background:#1d4ed8;color:#fff}
+
+/* Misc */
+.flex{display:flex}.items-center{align-items:center}.gap-8{gap:8px}.ml-auto{margin-left:auto}
+.text-muted{color:var(--muted)}.text-danger{color:var(--danger)}.text-success{color:var(--success)}
+.mt-16{margin-top:16px}.mb-16{margin-bottom:16px}
+.hidden{display:none!important}
+.section-divider{height:1px;background:var(--border);margin:20px 0}
+.upload-preview{width:100%;max-height:160px;object-fit:contain;border-radius:6px;border:1px solid var(--border);margin-top:8px}
+.help-text{font-size:.75rem;color:var(--muted);margin-top:4px}
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="sidebar">
+  <div class="logo">
+    <h1>PhotoBooth</h1>
+    <p>Dashboard quản lý</p>
+  </div>
+  <nav>
+    <div class="nav-item active" onclick="showPage('overview')" id="nav-overview">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Tổng quan
+    </div>
+    <div class="nav-item" onclick="showPage('categories')" id="nav-categories">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z"/></svg>
+      Categories
+    </div>
+    <div class="nav-item" onclick="showPage('themes')" id="nav-themes">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="12" cy="12" r="4"/></svg>
+      Themes
+    </div>
+    <div class="nav-item" onclick="showPage('stickers')" id="nav-stickers">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01"/></svg>
+      Stickers
+    </div>
+    <div class="nav-item" onclick="showPage('sessions')" id="nav-sessions">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Sessions
+    </div>
+    <div class="nav-item" onclick="showPage('settings')" id="nav-settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+      Cài đặt
+    </div>
+  </nav>
+</aside>
+
+<div class="main">
+  <div class="topbar">
+    <span class="topbar-title" id="page-title">Tổng quan</span>
+    <div class="flex items-center gap-8">
+      <span class="text-muted" style="font-size:.8rem" id="clock"></span>
+      <a href="http://localhost:5173" target="_blank" class="btn btn-ghost btn-sm">Mở Kiosk ↗</a>
+    </div>
+  </div>
+  <div class="content" id="page-content"></div>
+</div>
+</div>
+<div id="toast"></div>
+
+<script>
+const BASE = '/api'
+
+// ── Utils ──────────────────────────────────────────────────────────────────
+async function api(method, path, body) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } }
+  if (body instanceof FormData) { delete opts.headers['Content-Type']; opts.body = body }
+  else if (body) opts.body = JSON.stringify(body)
+  const res = await fetch(BASE + path, opts)
+  return res.json()
+}
+
+function toast(msg, type = 'success') {
+  const el = document.getElementById('toast')
+  el.textContent = msg; el.className = `show ${type}`
+  setTimeout(() => el.className = '', 3000)
+}
+function fmtPrice(n) { return (n||0).toLocaleString('vi-VN') + 'đ' }
+function fmtDate(d)  { return d ? new Date(d).toLocaleString('vi-VN') : '—' }
+function statusBadge(s) {
+  const m = { pending:'warning', paid:'warning', capturing:'warning', reviewing:'warning', completed:'success' }
+  const l = { pending:'Chờ TT', paid:'Đã TT', capturing:'Đang chụp', reviewing:'Xem lại', completed:'Hoàn tất' }
+  return `<span class="badge badge-${m[s]||'warning'}">${l[s]||s}</span>`
+}
+function closeModal(id) { document.getElementById(id)?.remove() }
+
+setInterval(() => {
+  document.getElementById('clock').textContent = new Date().toLocaleTimeString('vi-VN')
+}, 1000)
+
+// ── Navigation ─────────────────────────────────────────────────────────────
+const TITLES = { overview:'Tổng quan', categories:'Categories', themes:'Themes', stickers:'Stickers', sessions:'Sessions', settings:'Cài đặt' }
+function showPage(name) {
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'))
+  document.getElementById(`nav-${name}`)?.classList.add('active')
+  document.getElementById('page-title').textContent = TITLES[name] || name
+  const pages = { overview, categories, themes, stickers, sessions, settings }
+  pages[name]?.()
+}
+
+// ── OVERVIEW ──────────────────────────────────────────────────────────────
+async function overview() {
+  const el = document.getElementById('page-content')
+  el.innerHTML = `<div class="stats-grid" id="stats-grid"></div>
+    <div class="card"><div class="card-header"><h3>Sessions gần đây</h3><button class="btn btn-ghost btn-sm" onclick="showPage('sessions')">Xem tất cả</button></div>
+    <div id="recent-tbl" style="padding:0 0 4px">Đang tải...</div></div>`
+
+  const [cats, ths, stks, sess] = await Promise.all([
+    api('GET','/categories/all'), api('GET','/themes'),
+    api('GET','/stickers/all'), api('GET','/sessions?limit=8'),
+  ])
+  const completed = (sess.data||[]).filter(s=>s.status==='completed').length
+  const revenue   = (sess.data||[]).filter(s=>s.status==='completed').reduce((a,s)=>a+s.totalPrice,0)
+
+  document.getElementById('stats-grid').innerHTML = [
+    { num: cats.data?.length||0, label:'Categories', icon:'🗂️' },
+    { num: ths.data?.length||0,  label:'Themes',     icon:'🎨' },
+    { num: stks.data?.length||0, label:'Stickers',   icon:'😊' },
+    { num: sess.total||0,        label:'Tổng sessions', icon:'📸' },
+  ].map(s=>`<div class="card stat-card"><div style="font-size:1.5rem;margin-bottom:8px">${s.icon}</div>
+    <div class="stat-num">${s.num}</div><div class="stat-label">${s.label}</div></div>`).join('')
+
+  document.getElementById('recent-tbl').innerHTML = (sess.data||[]).length
+    ? `<table><thead><tr><th>ID</th><th>Theme</th><th>Số tấm</th><th>Tổng tiền</th><th>Drive</th><th>Trạng thái</th><th>Thời gian</th></tr></thead>
+      <tbody>${(sess.data||[]).map(s=>`<tr>
+        <td style="font-family:monospace;font-size:.72rem;color:var(--muted)">${s._id?.slice(-8)}</td>
+        <td><strong>${s.themeId?.name||'—'}</strong></td>
+        <td>${s.copyCount} tấm</td><td>${fmtPrice(s.totalPrice)}</td>
+        <td>${s.driveFolderId?`<span class="badge badge-success">✓ Drive</span>`:`<span class="badge badge-warning">Chưa</span>`}</td>
+        <td>${statusBadge(s.status)}</td><td>${fmtDate(s.createdAt)}</td>
+      </tr>`).join('')}</tbody></table>`
+    : '<p class="text-muted" style="padding:20px">Chưa có session nào</p>'
+}
+
+// ── CATEGORIES ────────────────────────────────────────────────────────────
+async function categories() {
+  const el = document.getElementById('page-content')
+  const { data } = await api('GET','/categories/all')
+  el.innerHTML = `
+    <div class="flex items-center gap-8 mb-16">
+      <span class="text-muted">${data?.length||0} categories</span>
+      <button class="btn btn-primary ml-auto" onclick="openCatModal()">+ Thêm category</button>
+    </div>
+    <div class="card">
+      <table><thead><tr><th>Ảnh</th><th>Tên</th><th>Themes</th><th>Thứ tự</th><th>Trạng thái</th><th>Hành động</th></tr></thead>
+      <tbody>${(data||[]).map(c=>`<tr>
+        <td>${c.coverImage?`<img src="http://localhost:3001/${c.coverImage}" class="img-preview">`:`<div class="img-placeholder">No img</div>`}</td>
+        <td><strong>${c.name}</strong></td>
+        <td>${c.themeCount||0} themes</td>
+        <td>${c.sortOrder}</td>
+        <td><span class="badge ${c.active?'badge-success':'badge-danger'}">${c.active?'Hiện':'Ẩn'}</span></td>
+        <td><div class="flex gap-8">
+          <button class="btn btn-ghost btn-sm" onclick='openCatModal(${JSON.stringify(c)})'>Sửa</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteCat('${c._id}')">Xóa</button>
+        </div></td>
+      </tr>`).join('')}</tbody></table>
+    </div>`
+}
+
+function openCatModal(cat=null) {
+  const isEdit = !!cat
+  document.body.insertAdjacentHTML('beforeend',`
+    <div class="modal-backdrop" id="cat-modal">
+      <div class="modal">
+        <div class="modal-header">
+          <h3>${isEdit?'Sửa':'Thêm'} Category</h3>
+          <button class="modal-close" onclick="closeModal('cat-modal')">✕</button>
+        </div>
+        <div class="modal-body">
+          <form id="cat-form">
+            <div class="form-group"><label class="form-label">Tên category *</label>
+              <input class="form-input" name="name" value="${cat?.name||''}" required></div>
+            <div class="form-group"><label class="form-label">Thứ tự hiển thị</label>
+              <input class="form-input" name="sortOrder" type="number" value="${cat?.sortOrder||0}"></div>
+            <div class="form-group"><label class="form-label">Ảnh cover</label>
+              <input class="form-input" name="coverImage" type="file" accept="image/*">
+              ${cat?.coverImage?`<img src="http://localhost:3001/${cat.coverImage}" class="upload-preview">`:''}
+            </div>
+            ${isEdit?`<div class="form-group"><label class="form-label">Trạng thái</label>
+              <select class="form-input" name="active">
+                <option value="true" ${cat?.active?'selected':''}>Hiện</option>
+                <option value="false" ${!cat?.active?'selected':''}>Ẩn</option>
+              </select></div>`:''}
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-ghost" onclick="closeModal('cat-modal')">Hủy</button>
+          <button class="btn btn-primary" onclick="saveCat('${cat?._id||''}')">Lưu</button>
+        </div>
+      </div>
+    </div>`)
+}
+
+async function saveCat(id) {
+  const fd = new FormData(document.getElementById('cat-form'))
+  const r  = await api(id?'PUT':'POST', id?`/categories/${id}`:'/categories', fd)
+  if (r.success) { toast('Đã lưu category!'); closeModal('cat-modal'); categories() }
+  else toast(r.message,'error')
+}
+async function deleteCat(id) {
+  if (!confirm('Xóa category này? Các theme bên trong cũng sẽ bị ẩn.')) return
+  const r = await api('DELETE',`/categories/${id}`)
+  if (r.success) { toast('Đã xóa'); categories() }
+  else toast(r.message,'error')
+}
+
+// ── THEMES ────────────────────────────────────────────────────────────────
+async function themes() {
+  const el = document.getElementById('page-content')
+  const [{ data: ts }, { data: cats }] = await Promise.all([api('GET','/themes'), api('GET','/categories/all')])
+  window._cats = cats||[]
+  el.innerHTML = `
+    <div class="flex items-center gap-8 mb-16">
+      <span class="text-muted">${ts?.length||0} themes</span>
+      <button class="btn btn-primary ml-auto" onclick="openThemeModal()">+ Thêm theme</button>
+    </div>
+    <div class="card">
+      <table><thead><tr><th>Cover</th><th>Tên</th><th>Category</th><th>Giá/tấm</th><th>Template</th><th>Thứ tự</th><th>Hành động</th></tr></thead>
+      <tbody>${(ts||[]).map(t=>`<tr>
+        <td>${t.coverImage?`<img src="http://localhost:3001/${t.coverImage}" class="img-preview">`:`<div class="img-placeholder">No img</div>`}</td>
+        <td><strong>${t.name}</strong></td>
+        <td>${t.categoryId?.name||'—'}</td>
+        <td style="color:var(--accent);font-weight:600">${fmtPrice(t.pricePerCopy)}</td>
+        <td>
+          <span class="badge ${t.frontTemplate?'badge-success':'badge-danger'}" style="margin-right:4px">Trước</span>
+          <span class="badge ${t.backTemplate?'badge-success':'badge-danger'}">Sau</span>
+        </td>
+        <td>${t.sortOrder}</td>
+        <td><div class="flex gap-8">
+          <button class="btn btn-ghost btn-sm" onclick='openThemeModal(${JSON.stringify(t)})'>Sửa</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteTheme('${t._id}')">Xóa</button>
+        </div></td>
+      </tr>`).join('')}</tbody></table>
+    </div>`
+}
+
+function openThemeModal(theme=null) {
+  const cats = window._cats||[]
+  document.body.insertAdjacentHTML('beforeend',`
+    <div class="modal-backdrop" id="theme-modal">
+      <div class="modal">
+        <div class="modal-header">
+          <h3>${theme?'Sửa':'Thêm'} Theme</h3>
+          <button class="modal-close" onclick="closeModal('theme-modal')">✕</button>
+        </div>
+        <div class="modal-body">
+          <form id="theme-form">
+            <div class="form-row">
+              <div class="form-group"><label class="form-label">Tên theme *</label>
+                <input class="form-input" name="name" value="${theme?.name||''}" required></div>
+              <div class="form-group"><label class="form-label">Category *</label>
+                <select class="form-input" name="categoryId" required>
+                  ${cats.map(c=>`<option value="${c._id}" ${(theme?.categoryId?._id||theme?.categoryId)===c._id?'selected':''}>${c.name}</option>`).join('')}
+                </select></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label class="form-label">Giá/tấm (VND)</label>
+                <input class="form-input" name="pricePerCopy" type="number" value="${theme?.pricePerCopy||50000}"></div>
+              <div class="form-group"><label class="form-label">Thứ tự hiển thị</label>
+                <input class="form-input" name="sortOrder" type="number" value="${theme?.sortOrder||0}"></div>
+            </div>
+            <div class="form-group"><label class="form-label">Ảnh cover</label>
+              <input class="form-input" name="coverImage" type="file" accept="image/*">
+              ${theme?.coverImage?`<img src="http://localhost:3001/${theme.coverImage}" class="upload-preview">`:''}
+            </div>
+            <div class="form-group"><label class="form-label">Template mặt trước (dùng làm thump strip)</label>
+              <input class="form-input" name="frontTemplate" type="file" accept="image/*">
+              <p class="help-text">Ảnh này sẽ chiếm 20% dưới cùng của strip ảnh</p>
+              ${theme?.frontTemplate?`<img src="http://localhost:3001/${theme.frontTemplate}" class="upload-preview">`:''}
+            </div>
+            <div class="form-group"><label class="form-label">Template mặt sau</label>
+              <input class="form-input" name="backTemplate" type="file" accept="image/*">
+              ${theme?.backTemplate?`<img src="http://localhost:3001/${theme.backTemplate}" class="upload-preview">`:''}
+            </div>
+            ${theme?`<div class="form-group"><label class="form-label">Trạng thái</label>
+              <select class="form-input" name="active">
+                <option value="true" ${theme?.active?'selected':''}>Hiện</option>
+                <option value="false" ${!theme?.active?'selected':''}>Ẩn</option>
+              </select></div>`:''}
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-ghost" onclick="closeModal('theme-modal')">Hủy</button>
+          <button class="btn btn-primary" onclick="saveTheme('${theme?._id||''}')">Lưu</button>
+        </div>
+      </div>
+    </div>`)
+}
+
+async function saveTheme(id) {
+  const fd = new FormData(document.getElementById('theme-form'))
+  const r  = await api(id?'PUT':'POST', id?`/themes/${id}`:'/themes', fd)
+  if (r.success) { toast('Đã lưu theme!'); closeModal('theme-modal'); themes() }
+  else toast(r.message,'error')
+}
+async function deleteTheme(id) {
+  if (!confirm('Xóa theme này?')) return
+  const r = await api('DELETE',`/themes/${id}`)
+  if (r.success) { toast('Đã xóa'); themes() }
+  else toast(r.message,'error')
+}
+
+// ── STICKERS ──────────────────────────────────────────────────────────────
+async function stickers() {
+  const el = document.getElementById('page-content')
+  const { data } = await api('GET','/stickers/all')
+  el.innerHTML = `
+    <div class="flex items-center gap-8 mb-16">
+      <span class="text-muted">${data?.length||0} stickers</span>
+      <button class="btn btn-primary ml-auto" onclick="openStickerModal()">+ Thêm sticker</button>
+    </div>
+    <div class="card">
+      <table><thead><tr><th>Ảnh</th><th>Tên</th><th>Vùng detect</th><th>Scale</th><th>Offset X/Y</th><th>Trạng thái</th><th>Hành động</th></tr></thead>
+      <tbody>${(data||[]).map(s=>`<tr>
+        <td><img src="http://localhost:3001/${s.imagePath}" class="img-preview" style="object-fit:contain;background:var(--bg2)"></td>
+        <td><strong>${s.name}</strong></td>
+        <td><code style="font-size:.8rem;background:var(--bg2);padding:2px 6px;border-radius:4px">${s.detectZone}</code></td>
+        <td>${s.scale}x</td>
+        <td>${s.offsetX||0} / ${s.offsetY||0}</td>
+        <td><span class="badge ${s.active?'badge-success':'badge-danger'}">${s.active?'Hiện':'Ẩn'}</span></td>
+        <td><div class="flex gap-8">
+          <button class="btn btn-ghost btn-sm" onclick='openStickerModal(${JSON.stringify(s)})'>Sửa</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteSticker('${s._id}')">Xóa</button>
+        </div></td>
+      </tr>`).join('')}</tbody></table>
+    </div>`
+}
+
+const ZONES = ['forehead','nose','cheek_left','cheek_right','chin','free']
+
+function openStickerModal(sticker=null) {
+  document.body.insertAdjacentHTML('beforeend',`
+    <div class="modal-backdrop" id="sticker-modal">
+      <div class="modal">
+        <div class="modal-header">
+          <h3>${sticker?'Sửa':'Thêm'} Sticker</h3>
+          <button class="modal-close" onclick="closeModal('sticker-modal')">✕</button>
+        </div>
+        <div class="modal-body">
+          <form id="sticker-form">
+            <div class="form-group"><label class="form-label">Tên sticker *</label>
+              <input class="form-input" name="name" value="${sticker?.name||''}" required></div>
+            <div class="form-group"><label class="form-label">Ảnh PNG (nền trong suốt) ${sticker?'':'*'}</label>
+              <input class="form-input" name="image" type="file" accept="image/png,image/webp" ${sticker?'':'required'}>
+              <p class="help-text">Khuyến nghị: PNG 512×512px nền trong suốt</p>
+              ${sticker?.imagePath?`<img src="http://localhost:3001/${sticker.imagePath}" class="upload-preview" style="max-height:100px;object-fit:contain">`:''}
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label class="form-label">Vùng detect</label>
+                <select class="form-input" name="detectZone">
+                  ${ZONES.map(z=>`<option value="${z}" ${sticker?.detectZone===z?'selected':''}>${z}</option>`).join('')}
+                </select>
+                <p class="help-text">forehead=trán, nose=mũi, cheek=má, chin=cằm, free=tự do</p>
+              </div>
+              <div class="form-group"><label class="form-label">Scale (1.0 = mặc định)</label>
+                <input class="form-input" name="scale" type="number" step="0.1" min="0.1" max="3" value="${sticker?.scale||1}"></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label class="form-label">Offset X (px, dịch ngang)</label>
+                <input class="form-input" name="offsetX" type="number" value="${sticker?.offsetX||0}"></div>
+              <div class="form-group"><label class="form-label">Offset Y (px, dịch dọc)</label>
+                <input class="form-input" name="offsetY" type="number" value="${sticker?.offsetY||0}"></div>
+            </div>
+            ${sticker?`<div class="form-group"><label class="form-label">Trạng thái</label>
+              <select class="form-input" name="active">
+                <option value="true" ${sticker?.active?'selected':''}>Hiện</option>
+                <option value="false" ${!sticker?.active?'selected':''}>Ẩn</option>
+              </select></div>`:''}
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-ghost" onclick="closeModal('sticker-modal')">Hủy</button>
+          <button class="btn btn-primary" onclick="saveSticker('${sticker?._id||''}')">Lưu</button>
+        </div>
+      </div>
+    </div>`)
+}
+
+async function saveSticker(id) {
+  const fd = new FormData(document.getElementById('sticker-form'))
+  const r  = await api(id?'PUT':'POST', id?`/stickers/${id}`:'/stickers', fd)
+  if (r.success) { toast('Đã lưu sticker!'); closeModal('sticker-modal'); stickers() }
+  else toast(r.message,'error')
+}
+async function deleteSticker(id) {
+  if (!confirm('Xóa sticker này?')) return
+  const r = await api('DELETE',`/stickers/${id}`)
+  if (r.success) { toast('Đã xóa'); stickers() }
+  else toast(r.message,'error')
+}
+
+// ── SESSIONS ──────────────────────────────────────────────────────────────
+async function sessions() {
+  const el = document.getElementById('page-content')
+  const { data, total } = await api('GET','/sessions?limit=50')
+  el.innerHTML = `
+    <div class="flex items-center gap-8 mb-16">
+      <span class="text-muted">${total||0} sessions tổng cộng</span>
+    </div>
+    <div class="card">
+      <table><thead><tr><th>ID</th><th>Theme</th><th>Số tấm</th><th>Tổng tiền</th><th>Drive</th><th>Trạng thái</th><th>Thời gian</th></tr></thead>
+      <tbody>${(data||[]).map(s=>`<tr>
+        <td style="font-family:monospace;font-size:.72rem;color:var(--muted)">${s._id?.slice(-8)}</td>
+        <td><strong>${s.themeId?.name||'—'}</strong></td>
+        <td>${s.copyCount} tấm (${s.copyCount*4} ảnh)</td>
+        <td style="font-weight:600;color:var(--accent)">${fmtPrice(s.totalPrice)}</td>
+        <td>${s.driveFolderName
+          ?`<span class="badge badge-success" title="${s.driveFolderName}">✓ ${s.driveFolderName.slice(0,20)}...</span>`
+          :`<span class="badge badge-warning">Chưa upload</span>`}</td>
+        <td>${statusBadge(s.status)}</td>
+        <td>${fmtDate(s.createdAt)}</td>
+      </tr>`).join('')}</tbody></table>
+    </div>`
+}
+
+// ── SETTINGS ──────────────────────────────────────────────────────────────
+async function settings() {
+  const el = document.getElementById('page-content')
+  const { data } = await api('GET','/settings')
+  el.innerHTML = `
+    <div style="max-width:640px">
+      <form id="settings-form">
+
+        <div class="card mb-16">
+          <div class="card-header"><h3>⚙️ Cài đặt chung</h3></div>
+          <div class="card-body">
+            <div class="form-row">
+              <div class="form-group"><label class="form-label">Tên ứng dụng</label>
+                <input class="form-input" name="app_name" value="${data.app_name||'PhotoBooth'}"></div>
+              <div class="form-group"><label class="form-label">Màn hình cảm ơn (giây)</label>
+                <input class="form-input" name="thankyou_duration" type="number" value="${data.thankyou_duration||10}"></div>
+            </div>
+            <div class="form-group"><label class="form-label">Đếm ngược chụp (giây)</label>
+              <input class="form-input" name="countdown_seconds" type="number" value="${data.countdown_seconds||10}" style="max-width:200px"></div>
+            <div class="form-group"><label class="form-label">Đường dẫn ảnh nền màn hình chờ</label>
+              <input class="form-input" name="idle_background" value="${data.idle_background||''}" placeholder="assets/backgrounds/default.jpg">
+              <p class="help-text">Đặt ảnh vào thư mục assets/backgrounds/ rồi nhập tên file</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="card mb-16">
+          <div class="card-header"><h3>🖨️ Kích thước ảnh strip</h3></div>
+          <div class="card-body">
+            <div class="form-row">
+              <div class="form-group"><label class="form-label">Chiều rộng (cm)</label>
+                <input class="form-input" name="strip_width_cm" type="number" step="0.5" value="${data.strip_width_cm||5}"></div>
+              <div class="form-group"><label class="form-label">Chiều cao (cm)</label>
+                <input class="form-input" name="strip_height_cm" type="number" step="0.5" value="${data.strip_height_cm||20}"></div>
+            </div>
+            <div class="form-group"><label class="form-label">Độ phân giải DPI</label>
+              <input class="form-input" name="strip_dpi" type="number" value="${data.strip_dpi||300}" style="max-width:200px">
+              <p class="help-text">300 DPI cho in ấn chất lượng cao. Mặc định 5×20cm @ 300dpi = 591×2362px</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="card mb-16">
+          <div class="card-header"><h3>🏦 Thông tin ngân hàng (QR thanh toán)</h3></div>
+          <div class="card-body">
+            <div class="form-row">
+              <div class="form-group"><label class="form-label">Tên ngân hàng</label>
+                <input class="form-input" name="bank_name" value="${data.bank_name||''}"></div>
+              <div class="form-group"><label class="form-label">BIN ngân hàng</label>
+                <input class="form-input" name="bank_bin" value="${data.bank_bin||''}" placeholder="970436 = Vietcombank"></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label class="form-label">Số tài khoản</label>
+                <input class="form-input" name="bank_account" value="${data.bank_account||''}"></div>
+              <div class="form-group"><label class="form-label">Tên chủ tài khoản</label>
+                <input class="form-input" name="bank_account_name" value="${data.bank_account_name||''}"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card mb-16">
+          <div class="card-header">
+            <h3>☁️ Google Drive</h3>
+            <span class="badge ${data.drive_enabled==='true'?'badge-success':'badge-warning'}">${data.drive_enabled==='true'?'Đã bật':'Chưa bật'}</span>
+          </div>
+          <div class="card-body">
+            <div class="form-group">
+              <label class="form-label">Bật Google Drive upload</label>
+              <select class="form-input" name="drive_enabled" style="max-width:200px">
+                <option value="true" ${data.drive_enabled==='true'?'selected':''}>Bật</option>
+                <option value="false" ${data.drive_enabled!=='true'?'selected':''}>Tắt</option>
+              </select>
+            </div>
+            <div class="form-group"><label class="form-label">Drive Parent Folder ID</label>
+              <input class="form-input" name="drive_parent_folder_id" value="${data.drive_parent_folder_id||''}" placeholder="1ABCxyz123456789...">
+              <p class="help-text">Lấy từ URL của folder Drive: drive.google.com/drive/folders/<strong>ID_ở_đây</strong></p>
+            </div>
+            <div style="background:var(--bg2);border-radius:8px;padding:14px;margin-top:8px">
+              <p style="font-size:.8rem;font-weight:600;margin-bottom:8px">📋 Hướng dẫn setup Service Account:</p>
+              <ol style="font-size:.8rem;color:var(--muted);padding-left:16px;line-height:1.8">
+                <li>Vào <a href="https://console.cloud.google.com" target="_blank" style="color:var(--accent)">Google Cloud Console</a> → tạo project</li>
+                <li>Enable <strong>Google Drive API</strong></li>
+                <li>Tạo <strong>Service Account</strong> → tải file JSON về</li>
+                <li>Đặt file JSON vào thư mục <code>server/</code></li>
+                <li>Thêm vào <code>server/.env</code>: <code>GOOGLE_SERVICE_ACCOUNT_PATH=./tên-file.json</code></li>
+                <li>Share folder Drive cho email trong file JSON (trường client_email)</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+
+        <button type="button" class="btn btn-primary" onclick="saveSettings()" style="width:100%;justify-content:center;padding:12px">
+          💾 Lưu tất cả cài đặt
+        </button>
+      </form>
+    </div>`
+}
+
+async function saveSettings() {
+  const form = document.getElementById('settings-form')
+  const body = Object.fromEntries(new FormData(form).entries())
+  const r    = await api('PUT','/settings', body)
+  if (r.success) toast('Đã lưu cài đặt!')
+  else toast(r.message,'error')
+}
+
+// Init
+overview()
+</script>
+</body>
+</html>

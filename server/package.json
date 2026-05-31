@@ -1,0 +1,25 @@
+{
+  "name": "photobooth-server",
+  "version": "1.0.0",
+  "description": "PhotoBooth Backend API + Serve Kiosk & Dashboard",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nodemon index.js",
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.1",
+    "express": "^4.18.2",
+    "googleapis": "^173.0.0",
+    "mongodb": "^7.2.0",
+    "mongoose": "^8.1.0",
+    "multer": "^1.4.5-lts.1",
+    "qrcode": "^1.5.3",
+    "sharp": "^0.33.2",
+    "uuid": "^9.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}

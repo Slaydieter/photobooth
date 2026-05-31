@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PhotoBooth</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <!-- MediaPipe FaceMesh -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+
+  <style>
+    /* Ngăn flash trắng khi load */
+    html { background: #0a0a0a; }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <!-- Noise texture -->
+    <div class="noise-overlay"></div>
+
+    <!-- Flash overlay (dùng chung toàn app) -->
+    <div class="flash-overlay" id="global-flash"></div>
+
+    <!-- 10 màn hình -->
+    <div id="screen-idle"       class="screen active"></div>
+    <div id="screen-category"   class="screen"></div>
+    <div id="screen-theme"      class="screen"></div>
+    <div id="screen-quantity"   class="screen"></div>
+    <div id="screen-payment"    class="screen"></div>
+    <div id="screen-precapture" class="screen"></div>
+    <div id="screen-capture"    class="screen"></div>
+    <div id="screen-review"     class="screen"></div>
+    <div id="screen-arrange"    class="screen"></div>
+    <div id="screen-thankyou"   class="screen"></div>
+  </div>
+
+  <script type="module" src="/main.js"></script>
+</body>
+</html>
