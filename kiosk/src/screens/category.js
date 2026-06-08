@@ -99,8 +99,9 @@ export async function renderThemeScreen(categoryId, categoryName) {
            data-id="${theme._id}"
            data-name="${theme.name}"
            data-price="${theme.pricePerCopy}"
-           data-front="${theme.frontTemplate || ''}"
-           data-back="${theme.backTemplate || ''}">
+           data-template="${theme.templateLayer || ''}"
+           data-photo-count="${theme.photoCount || 4}"
+           data-placeholder-color="${theme.placeholderColor || '#87CEEB'}">
         <div class="theme-card-img">
           ${theme.coverImage
             ? `<img src="http://localhost:3001/${theme.coverImage}" alt="${theme.name}">`
@@ -127,11 +128,12 @@ export async function renderThemeScreen(categoryId, categoryName) {
     grid.querySelectorAll('.theme-card').forEach(card => {
       card.addEventListener('click', () => {
         const theme = {
-          _id:           card.dataset.id,
-          name:          card.dataset.name,
-          pricePerCopy:  parseInt(card.dataset.price),
-          frontTemplate: card.dataset.front,
-          backTemplate:  card.dataset.back,
+          _id:              card.dataset.id,
+          name:             card.dataset.name,
+          pricePerCopy:     parseInt(card.dataset.price),
+          templateLayer:    card.dataset.template || null,
+          photoCount:       parseInt(card.dataset.photoCount) || 4,
+          placeholderColor: card.dataset.placeholderColor || '#87CEEB',
         }
         setState('session.themeId',    theme._id)
         setState('session.theme',      theme)

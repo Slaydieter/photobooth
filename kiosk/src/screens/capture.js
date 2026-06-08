@@ -4,7 +4,7 @@ import { API } from '../utils/api.js'
 
 export async function renderCaptureScreen() {
   const el = document.getElementById('screen-capture')
-  const totalShots   = state.session.copyCount * 4
+  const totalShots   = state.session.copyCount * (state.session.theme?.photoCount || 4)
   const countdownSec = parseInt(state.settings.countdown_seconds || '10')
 
   el.innerHTML = `
@@ -66,6 +66,8 @@ export async function renderCaptureScreen() {
 
   // ── Setup camera ─────────────────────────────────────────────────────────
   const video         = document.getElementById('cap-video')
+  let   mediaRecorder = null
+  let   recordedChunks = []
   const stickerCanvas = document.getElementById('cap-sticker-canvas')
   const stickerCtx    = stickerCanvas.getContext('2d')
   let stream = null
@@ -79,6 +81,20 @@ export async function renderCaptureScreen() {
     video.onloadedmetadata = () => {
       stickerCanvas.width  = video.videoWidth
       stickerCanvas.height = video.videoHeight
+
+      // Bắt đầu record video
+      try {
+        const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
+          ? 'video/webm;codecs=vp9' : 'video/webm'
+        mediaRecorder = new MediaRecorder(stream, { mimeType })
+        mediaRecorder.ondataavailable = e => {
+          if (e.data && e.data.size > 0) recordedChunks.push(e.data)
+        }
+        mediaRecorder.start(1000) // chunk mỗi 1s
+        console.log('[Capture] Recording started:', mimeType)
+      } catch (err) {
+        console.warn('[Capture] MediaRecorder error:', err.message)
+      }
     }
   } catch (err) {
     console.warn('Camera error:', err)
@@ -181,8 +197,57 @@ export async function renderCaptureScreen() {
   // ── Countdown loop ────────────────────────────────────────────────────────
   async function runCountdown() {
     if (currentShot >= totalShots) {
-      // Xong — chuyển sang review
+      console.log('[Capture] Chụp xong, dừng record và lưu video...')
+
+      // 1. Dừng MediaRecorder trước, chờ data flush
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        await new Promise(resolve => {
+          mediaRecorder.onstop = async () => {
+            try {
+              if (recordedChunks.length > 0) {
+                const blob      = new Blob(recordedChunks, { type: 'video/webm' })
+                const takeRound = state.session.retakeCount + 1
+                console.log(`[Capture] Saving video blob: ${blob.size} bytes, round ${takeRound}`)
+                try {
+                  // Dùng FormData + fetch trực tiếp thay vì base64 để tránh memory issue
+                  const formData = new FormData()
+                  formData.append('video', blob, `video-round${takeRound}.webm`)
+                  formData.append('takeRound', String(takeRound))
+                  const res = await fetch(
+                    `http://localhost:3001/api/sessions/${state.session.id}/video-upload`,
+                    { method: 'POST', body: formData }
+                  )
+                  const data = await res.json()
+                  if (data.success) {
+                    const videos = [...(state.session.videos || []), { takeRound, filePath: data.data.filePath }]
+                    setState('session.videos', videos)
+                    console.log(`[Capture] ✅ Video round ${takeRound} saved:`, data.data.filePath)
+                  } else {
+                    console.warn('[Capture] Save video failed:', data.message)
+                  }
+                } catch (err) {
+                  console.warn('[Capture] Save video error:', err)
+                }
+                resolve()
+              } else {
+                console.warn('[Capture] No recorded chunks!')
+                resolve()
+              }
+            } catch (err) {
+              console.warn('[Capture] onstop error:', err)
+              resolve()
+            }
+          }
+          mediaRecorder.stop()
+        })
+      } else {
+        console.warn('[Capture] MediaRecorder không hoạt động:', mediaRecorder?.state)
+      }
+
+      // 2. Dừng stream
       if (stream) stream.getTracks().forEach(t => t.stop())
+
+      // 3. Chuyển sang review
       const allPhotos = await API.getPhotos(state.session.id)
       setState('session.photos', allPhotos.data)
       navigate('review')

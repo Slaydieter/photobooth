@@ -1,2 +1,35 @@
-node_modules
-package-lock.json
+# Dependencies
+node_modules/
+
+# Environment variables — chứa thông tin nhạy cảm
+server/.env
+
+# Google Service Account JSON — QUAN TRỌNG, không được commit
+server/*.json
+
+# Assets — ảnh output, video của khách
+assets/outputs/
+assets/backgrounds/
+assets/themes/
+assets/categories/
+assets/stickers/
+
+# Database file (nếu dùng SQLite local)
+assets/*.db
+
+# Build outputs
+kiosk/dist/
+dashboard/dist/
+dist/
+
+# Logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/

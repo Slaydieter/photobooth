@@ -6,6 +6,7 @@ const QRCode   = require('qrcode')
 const { v4: uuidv4 } = require('uuid')
 
 const Session  = require('../../models/Session')
+const { enqueue, getSessionStatus } = require('../../utils/uploadQueue')
 const Theme    = require('../../models/Theme')
 const Settings = require('../../models/Settings')
 
@@ -144,8 +145,8 @@ router.post('/:sessionId/output', async (req, res) => {
 
     const settings    = await getAllSettings()
     const stripConfig = parseStripConfig(settings)
-    const frontTemplate = session.themeId?.frontTemplate
-      ? path.join(ASSETS_ROOT, '..', session.themeId.frontTemplate)
+    const templateLayer = session.themeId?.templateLayer
+      ? path.join(ASSETS_ROOT, '..', session.themeId.templateLayer)
       : null
 
     const outputs = []
@@ -159,11 +160,12 @@ router.post('/:sessionId/output', async (req, res) => {
 
       const stripDir      = path.join(ASSETS_ROOT, `outputs/${session._id}`)
       const stripFilename = `strip-${copyIndex + 1}.jpg`
-      const stripPath     = path.join(stripDir, stripFilename)
+      const stripPath     = path.join(ASSETS_ROOT, `outputs/${session._id}/strips`, stripFilename)
+      fs.mkdirSync(path.dirname(stripPath), { recursive: true })
 
-      await createStrip(photoPaths, frontTemplate, stripPath, stripConfig)
+      await createStrip(photoPaths, templateLayer, stripPath, stripConfig)
 
-      const stripRelative = `assets/outputs/${session._id}/${stripFilename}`
+      const stripRelative = `assets/outputs/${session._id}/strips/${stripFilename}`
       let stripDriveLink  = null
       let stripQRDataURL  = null
 
@@ -193,6 +195,107 @@ router.post('/:sessionId/output', async (req, res) => {
   }
 })
 
+// ─── POST /sessions/:id/video-upload — lưu video multipart ──────────────────
+const videoStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = path.join(ASSETS_ROOT, `outputs/${req.params.sessionId}/videos`)
+    fs.mkdirSync(dir, { recursive: true })
+    cb(null, dir)
+  },
+  filename: (req, file, cb) => {
+    const takeRound = req.body.takeRound || '1'
+    cb(null, `video-round${takeRound}-${Date.now()}.webm`)
+  },
+})
+const uploadVideo = multer({ storage: videoStorage })
+
+router.post('/:sessionId/video-upload', uploadVideo.single('video'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ success: false, message: 'No video file' })
+    const relativePath = `assets/outputs/${req.params.sessionId}/videos/${req.file.filename}`
+    console.log(`[Sessions] Video saved: ${relativePath} | ${req.file.size} bytes`)
+
+    // Push vào upload queue
+    const absPath = path.join(ASSETS_ROOT, `outputs/${req.params.sessionId}/videos/${req.file.filename}`)
+    enqueue(req.params.sessionId, absPath, req.file.filename, 'video')
+    console.log(`[Sessions] Video enqueued for upload: ${req.file.filename}`)
+
+    res.json({ success: true, data: { filePath: relativePath } })
+  } catch (err) {
+    console.error('[Sessions] video-upload error:', err)
+    res.status(500).json({ success: false, message: err.message })
+  }
+})
+
+// ─── POST /sessions/:id/filter-photos — lưu ảnh đã filter ───────────────────
+router.post('/:sessionId/filter-photos', async (req, res) => {
+  try {
+    const { imageData, photoId } = req.body
+    const sessionId = req.params.sessionId
+    const dir = path.join(ASSETS_ROOT, `outputs/${sessionId}/filters`)
+    fs.mkdirSync(dir, { recursive: true })
+    const filename = `filter-${photoId}-${Date.now()}.jpg`
+    const filePath = path.join(dir, filename)
+    const b64 = imageData.replace(/^data:image\/\w+;base64,/, '')
+    fs.writeFileSync(filePath, Buffer.from(b64, 'base64'))
+    const relativePath = `assets/outputs/${sessionId}/filters/${filename}`
+    console.log(`[Sessions] Filter photo saved: ${relativePath}`)
+
+    // Push vào upload queue
+    enqueue(sessionId, filePath, filename, 'filter')
+    console.log(`[Sessions] Filter enqueued for upload: ${filename}`)
+
+    res.json({ success: true, data: { filePath: relativePath } })
+  } catch (err) {
+    console.error('[Sessions] filter-photos error:', err)
+    res.status(500).json({ success: false, message: err.message })
+  }
+})
+
+// ─── POST /sessions/:id/folder-qr — tạo QR từ Drive folder URL ──────────────
+router.post('/:sessionId/folder-qr', async (req, res) => {
+  try {
+    const { url } = req.body
+    if (!url) return res.status(400).json({ success: false, message: 'url required' })
+    const qrDataURL = await QRCode.toDataURL(url, {
+      errorCorrectionLevel: 'M', width: 280, margin: 2,
+    })
+    res.json({ success: true, data: { qrDataURL } })
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message })
+  }
+})
+
+// ─── GET /sessions/:id/drive-status — lấy trạng thái upload Drive ─────────────
+router.get('/:sessionId/drive-status', async (req, res) => {
+  try {
+    const sessionId = req.params.sessionId
+    const queueStatus = getSessionStatus(sessionId)
+
+    // Lấy thêm từ DB
+    const session = await Session.findById(sessionId).select('driveStatus driveFolderUrl driveFolderName')
+
+    res.json({
+      success: true,
+      data: {
+        // Queue realtime
+        pending:    queueStatus.pending,
+        done:       queueStatus.done,
+        failed:     queueStatus.failed,
+        total:      queueStatus.total,
+        allDone:    queueStatus.allDone,
+        // Drive info
+        folderUrl:  queueStatus.folderUrl || session?.driveFolderUrl || null,
+        folderName: session?.driveFolderName || null,
+        driveStatus: session?.driveStatus || 'idle',
+      }
+    })
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message })
+  }
+})
+
+// ─── GET /sessions — list (dashboard) ────────────────────────────────────────
 router.get('/', async (req, res) => {
   try {
     const { limit = 20, page = 1, status } = req.query

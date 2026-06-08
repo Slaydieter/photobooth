@@ -32,4 +32,8 @@ export const API = {
   savePhoto:      (id, body)   => API.post(`/sessions/${id}/photos`, body),
   getPhotos:      (id)         => API.get(`/sessions/${id}/photos`),
   saveOutput:     (id, layouts)=> API.post(`/sessions/${id}/output`, { layouts }),
+  saveFilterPhoto:(id, body)    => API.post(`/sessions/${id}/filter-photos`, body),
+  saveVideo:      (id, body)    => API.post(`/sessions/${id}/video`, body),
+  getFilters:     ()            => API.get('/filters'),
+  getDriveStatus: (id)          => API.get(`/sessions/${id}/drive-status`),
 }

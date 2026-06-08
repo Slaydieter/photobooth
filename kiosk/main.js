@@ -14,12 +14,13 @@ import { renderPrecaptureScreen,precaptureStyles} from './src/screens/precapture
 import { renderCaptureScreen,   captureStyles   } from './src/screens/capture.js'
 import { renderReviewScreen,    reviewStyles    } from './src/screens/review.js'
 import { renderArrangeScreen,   arrangeStyles   } from './src/screens/arrange.js'
+import { renderFilterScreen,    filterStyles    } from './src/screens/filter.js'
 import { renderThankyouScreen,  thankyouStyles  } from './src/screens/thankyou.js'
 
 // ── Inject per-screen styles ──────────────────────────────────────────────
 const allStyles = [
   idleStyles, categoryStyles, quantityStyles, paymentStyles,
-  precaptureStyles, captureStyles, reviewStyles, arrangeStyles, thankyouStyles,
+  precaptureStyles, captureStyles, reviewStyles, filterStyles, arrangeStyles, thankyouStyles,
 ].join('\n')
 
 const styleEl = document.createElement('style')
@@ -33,6 +34,7 @@ window.goHome  = goHome
 // ── Expose screen renderers (cross-screen calls) ──────────────────────────
 window._screens = {
   renderQuantityScreen,
+  renderFilterScreen,
   renderArrangeScreen,
 }
 
@@ -54,6 +56,7 @@ on('navigate', async ({ to, from }) => {
     case 'precapture': renderPrecaptureScreen(); break
     case 'capture':    renderCaptureScreen();    break
     case 'review':     renderReviewScreen();     break
+    case 'filter':     /* rendered trước khi navigate */ break
     case 'arrange':    /* rendered trước khi navigate */ break
     case 'thankyou':   renderThankyouScreen();   break
   }

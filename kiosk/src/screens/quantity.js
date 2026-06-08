@@ -59,7 +59,7 @@ export function renderQuantityScreen() {
           <p class="text-sm text-muted" style="letter-spacing:0.12em;text-transform:uppercase;margin-bottom:12px">Số lượng tấm</p>
           <h2 class="display-md">Chọn <span class="text-accent">bao nhiêu tấm?</span></h2>
           <div class="divider" style="margin:20px 0"></div>
-          <p class="text-md text-muted">Mỗi tấm gồm <strong style="color:var(--text)">4 bức ảnh</strong></p>
+          <p class="text-md text-muted">Mỗi tấm gồm <strong style="color:var(--text)">${theme.photoCount || 4} bức ảnh</strong></p>
         </div>
 
         <div class="qty-counter">
@@ -82,7 +82,7 @@ export function renderQuantityScreen() {
         <div class="qty-info-box" id="qty-info">
           <div class="qty-info-row">
             <span class="text-muted">Số bức ảnh</span>
-            <span class="text-accent" id="info-shots">4 bức</span>
+            <span class="text-accent" id="info-shots">${theme.photoCount || 4} bức</span>
           </div>
           <div class="qty-info-row">
             <span class="text-muted">Đơn giá</span>
@@ -110,7 +110,7 @@ export function renderQuantityScreen() {
   window.changeQty = (delta) => {
     qty = Math.max(1, Math.min(MAX_QTY, qty + delta))
     document.getElementById('qty-number').textContent = qty
-    document.getElementById('info-shots').textContent = `${qty * 4} bức`
+    document.getElementById('info-shots').textContent = `${qty * (theme.photoCount || 4)} bức`
     document.getElementById('info-total').textContent =
       (theme.pricePerCopy * qty).toLocaleString('vi-VN') + 'đ'
     document.getElementById('qty-minus').disabled = qty <= 1

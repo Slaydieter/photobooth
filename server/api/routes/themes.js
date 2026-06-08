@@ -19,8 +19,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage })
 const fields = upload.fields([
   { name: 'coverImage',    maxCount: 1 },
-  { name: 'frontTemplate', maxCount: 1 },
-  { name: 'backTemplate',  maxCount: 1 },
+  { name: 'templateLayer', maxCount: 1 },
 ])
 
 // GET themes by category
@@ -67,11 +66,12 @@ router.post('/', fields, async (req, res) => {
     const theme = await Theme.create({
       categoryId,
       name,
-      pricePerCopy:  pricePerCopy  || 50000,
-      sortOrder:     sortOrder     || 0,
-      coverImage:    files.coverImage    ? `assets/themes/${files.coverImage[0].filename}`    : null,
-      frontTemplate: files.frontTemplate ? `assets/themes/${files.frontTemplate[0].filename}` : null,
-      backTemplate:  files.backTemplate  ? `assets/themes/${files.backTemplate[0].filename}`  : null,
+      pricePerCopy:     pricePerCopy  || 50000,
+      photoCount:       parseInt(req.body.photoCount) || 4,
+      sortOrder:        sortOrder     || 0,
+      placeholderColor: req.body.placeholderColor || '#87CEEB',
+      coverImage:       files.coverImage    ? `assets/themes/${files.coverImage[0].filename}`    : null,
+      templateLayer:    files.templateLayer ? `assets/themes/${files.templateLayer[0].filename}` : null,
     })
     res.json({ success: true, data: theme })
   } catch (err) {
@@ -82,12 +82,11 @@ router.post('/', fields, async (req, res) => {
 // PUT update
 router.put('/:id', fields, async (req, res) => {
   try {
-    const { name, pricePerCopy, sortOrder, active, categoryId } = req.body
-    const update = { name, pricePerCopy, sortOrder, active: active !== 'false', categoryId }
+    const { name, pricePerCopy, sortOrder, active, categoryId, photoCount } = req.body
+    const update = { name, pricePerCopy, sortOrder, active: active !== 'false', categoryId, photoCount: parseInt(photoCount) || 4, placeholderColor: req.body.placeholderColor || '#87CEEB' }
     const files = req.files || {}
     if (files.coverImage)    update.coverImage    = `assets/themes/${files.coverImage[0].filename}`
-    if (files.frontTemplate) update.frontTemplate = `assets/themes/${files.frontTemplate[0].filename}`
-    if (files.backTemplate)  update.backTemplate  = `assets/themes/${files.backTemplate[0].filename}`
+    if (files.templateLayer) update.templateLayer = `assets/themes/${files.templateLayer[0].filename}`
     const theme = await Theme.findByIdAndUpdate(req.params.id, update, { new: true })
     res.json({ success: true, data: theme })
   } catch (err) {

@@ -136,6 +136,10 @@ tr:hover td{background:var(--bg)}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
       Sessions
     </div>
+    <div class="nav-item" onclick="showPage('filters')" id="nav-filters">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+      Filters
+    </div>
     <div class="nav-item" onclick="showPage('settings')" id="nav-settings">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
       Cài đặt
@@ -187,12 +191,12 @@ setInterval(() => {
 }, 1000)
 
 // ── Navigation ─────────────────────────────────────────────────────────────
-const TITLES = { overview:'Tổng quan', categories:'Categories', themes:'Themes', stickers:'Stickers', sessions:'Sessions', settings:'Cài đặt' }
+const TITLES = { overview:'Tổng quan', categories:'Categories', themes:'Themes', stickers:'Stickers', sessions:'Sessions', filters:'Filters', settings:'Cài đặt' }
 function showPage(name) {
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'))
   document.getElementById(`nav-${name}`)?.classList.add('active')
   document.getElementById('page-title').textContent = TITLES[name] || name
-  const pages = { overview, categories, themes, stickers, sessions, settings }
+  const pages = { overview, categories, themes, stickers, sessions, filters, settings }
   pages[name]?.()
 }
 
@@ -320,8 +324,8 @@ async function themes() {
         <td>${t.categoryId?.name||'—'}</td>
         <td style="color:var(--accent);font-weight:600">${fmtPrice(t.pricePerCopy)}</td>
         <td>
-          <span class="badge ${t.frontTemplate?'badge-success':'badge-danger'}" style="margin-right:4px">Trước</span>
-          <span class="badge ${t.backTemplate?'badge-success':'badge-danger'}">Sau</span>
+          <span class="badge ${t.templateLayer?'badge-success':'badge-danger'}">Template</span>
+          <span class="badge badge-info" style="margin-left:4px">${t.photoCount||4} ảnh</span>
         </td>
         <td>${t.sortOrder}</td>
         <td><div class="flex gap-8">
@@ -361,14 +365,28 @@ function openThemeModal(theme=null) {
               <input class="form-input" name="coverImage" type="file" accept="image/*">
               ${theme?.coverImage?`<img src="http://localhost:3001/${theme.coverImage}" class="upload-preview">`:''}
             </div>
-            <div class="form-group"><label class="form-label">Template mặt trước (dùng làm thump strip)</label>
-              <input class="form-input" name="frontTemplate" type="file" accept="image/*">
-              <p class="help-text">Ảnh này sẽ chiếm 20% dưới cùng của strip ảnh</p>
-              ${theme?.frontTemplate?`<img src="http://localhost:3001/${theme.frontTemplate}" class="upload-preview">`:''}
+            <div class="form-group"><label class="form-label">Số ảnh mỗi tấm</label>
+              <input class="form-input" name="photoCount" type="number" min="1" max="10" value="${theme?.photoCount||4}" style="max-width:120px">
+              <p class="help-text">Số ô ảnh của khách trong 1 tấm (thường là 3 hoặc 4)</p>
             </div>
-            <div class="form-group"><label class="form-label">Template mặt sau</label>
-              <input class="form-input" name="backTemplate" type="file" accept="image/*">
-              ${theme?.backTemplate?`<img src="http://localhost:3001/${theme.backTemplate}" class="upload-preview">`:''}
+            <div class="form-group"><label class="form-label">Template PNG (đè lên ảnh khách)</label>
+              <input class="form-input" name="templateLayer" type="file" accept="image/png,image/webp">
+              <p class="help-text">PNG đè lên ảnh khách. Các ô ảnh trống để 1 màu solid, app tự detect theo màu đó.</p>
+              ${theme?.templateLayer?`<img src="http://localhost:3001/${theme.templateLayer}" class="upload-preview">`:""}
+            </div>
+            <div class="form-group">
+              <label class="form-label">Màu ô ảnh placeholder</label>
+              <div style="display:flex;align-items:center;gap:12px">
+                <input type="color" name="placeholderColor"
+                  value="${theme?.placeholderColor||'#87CEEB'}"
+                  style="width:48px;height:36px;padding:2px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:var(--bg)">
+                <input class="form-input" name="placeholderColorHex"
+                  value="${theme?.placeholderColor||'#87CEEB'}"
+                  placeholder="#87CEEB"
+                  style="max-width:120px;font-family:monospace"
+                  oninput="syncColor(this)">
+                <span style="font-size:.75rem;color:var(--muted)">Màu solid của vùng ô ảnh trong template</span>
+              </div>
             </div>
             ${theme?`<div class="form-group"><label class="form-label">Trạng thái</label>
               <select class="form-input" name="active">
@@ -385,8 +403,21 @@ function openThemeModal(theme=null) {
     </div>`)
 }
 
+function syncColor(input) {
+  // Sync hex input với color picker
+  const val = input.value
+  const picker = input.previousElementSibling
+  if (/^#[0-9a-fA-F]{6}$/.test(val) && picker) picker.value = val
+}
+
+// Override saveTheme để merge placeholderColor từ color picker
 async function saveTheme(id) {
-  const fd = new FormData(document.getElementById('theme-form'))
+  const form = document.getElementById('theme-form')
+  const fd   = new FormData(form)
+  // Dùng color picker value làm placeholderColor chính
+  const picker = form.querySelector('input[type="color"][name="placeholderColor"]')
+  if (picker) fd.set('placeholderColor', picker.value)
+  fd.delete('placeholderColorHex') // xóa field phụ
   const r  = await api(id?'PUT':'POST', id?`/themes/${id}`:'/themes', fd)
   if (r.success) { toast('Đã lưu theme!'); closeModal('theme-modal'); themes() }
   else toast(r.message,'error')
@@ -511,6 +542,123 @@ async function sessions() {
     </div>`
 }
 
+// ── FILTERS ───────────────────────────────────────────────────────────────
+async function filters() {
+  const el = document.getElementById('page-content')
+  const { data } = await api('GET', '/filters/all')
+  el.innerHTML = `
+    <div class="flex items-center gap-8 mb-16">
+      <span class="text-muted">${data?.length||0} filters</span>
+      <button class="btn btn-primary ml-auto" onclick="openFilterModal()">+ Thêm filter</button>
+    </div>
+    <div class="card">
+      <table><thead><tr><th>Preview</th><th>Tên</th><th>Nhóm</th><th>CSS Filter</th><th>MediaPipe</th><th>Thứ tự</th><th>Trạng thái</th><th></th></tr></thead>
+      <tbody>${(data||[]).map(f=>`<tr>
+        <td><div style="width:40px;height:40px;border-radius:6px;background:linear-gradient(135deg,#f5c6a0,#e8a0c0,#a0c8e8);filter:${f.cssFilter||'none'}"></div></td>
+        <td><strong>${f.name}</strong></td>
+        <td><span class="badge ${f.group==='tone'?'badge-info':'badge-warning'}">${f.group==='tone'?'🎨 Tone':'💄 Face'}</span></td>
+        <td style="font-family:monospace;font-size:.72rem;max-width:140px;overflow:hidden;text-overflow:ellipsis">${f.cssFilter||'—'}</td>
+        <td>${f.mediapipe?.type&&f.mediapipe.type!=='none'?`<span class="badge badge-success">${f.mediapipe.type}</span>`:'—'}</td>
+        <td>${f.sortOrder}</td>
+        <td><span class="badge ${f.active?'badge-success':'badge-danger'}">${f.active?'Hiện':'Ẩn'}</span></td>
+        <td><div class="flex gap-8">
+          <button class="btn btn-ghost btn-sm" onclick='openFilterModal(${JSON.stringify(f).replace(/'/g,"&#39;")})'>Sửa</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteFilter('${f._id}')">Xóa</button>
+        </div></td>
+      </tr>`).join('')}</tbody></table>
+    </div>`
+}
+
+function openFilterModal(filter=null) {
+  const isEdit = !!filter
+  document.body.insertAdjacentHTML('beforeend',`
+    <div class="modal-backdrop" id="filter-modal">
+      <div class="modal">
+        <div class="modal-header">
+          <h3>${isEdit?'Sửa':'Thêm'} Filter</h3>
+          <button class="modal-close" onclick="closeModal('filter-modal')">✕</button>
+        </div>
+        <div class="modal-body">
+          <form id="filter-form">
+            <div class="form-row">
+              <div class="form-group"><label class="form-label">Tên filter *</label>
+                <input class="form-input" name="name" value="${filter?.name||''}" required></div>
+              <div class="form-group"><label class="form-label">Nhóm *</label>
+                <select class="form-input" name="group">
+                  <option value="tone" ${filter?.group==='tone'?'selected':''}>🎨 Tone màu</option>
+                  <option value="face" ${filter?.group==='face'?'selected':''}>💄 Khuôn mặt</option>
+                </select></div>
+            </div>
+            <div class="form-group"><label class="form-label">CSS Filter (Overlay mode)</label>
+              <input class="form-input" name="cssFilter" value="${filter?.cssFilter||''}" placeholder="sepia(0.3) saturate(1.3)">
+              <p class="help-text">Áp lên toàn ảnh. VD: sepia(0.3) saturate(1.3) brightness(1.05)</p>
+            </div>
+            <div class="form-group"><label class="form-label">Overlay Color</label>
+              <input class="form-input" name="overlayColor" value="${filter?.overlayColor||'rgba(255,150,150,0.15)'}" placeholder="rgba(255,150,150,0.15)">
+              <p class="help-text">Màu overlay đè lên ảnh. Dùng rgba với alpha thấp (0.1-0.3)</p>
+            </div>
+            <div class="section-divider"></div>
+            <p style="font-weight:600;font-size:.875rem;margin-bottom:12px">⚙️ MediaPipe Face config</p>
+            <div class="form-row">
+              <div class="form-group"><label class="form-label">Vùng detect</label>
+                <select class="form-input" name="mediapipe_type">
+                  <option value="none"   ${filter?.mediapipe?.type==='none'  ||!filter?.mediapipe?.type?'selected':''}>Không detect</option>
+                  <option value="cheeks" ${filter?.mediapipe?.type==='cheeks'?'selected':''}>Má (Cheeks)</option>
+                  <option value="lips"   ${filter?.mediapipe?.type==='lips'  ?'selected':''}>Môi (Lips)</option>
+                  <option value="skin"   ${filter?.mediapipe?.type==='skin'  ?'selected':''}>Da mặt (Skin)</option>
+                </select></div>
+              <div class="form-group"><label class="form-label">Intensity (0-1)</label>
+                <input class="form-input" name="mediapipe_intensity" type="number" step="0.1" min="0" max="1" value="${filter?.mediapipe?.intensity||0.5}"></div>
+            </div>
+            <div class="form-group"><label class="form-label">Màu MediaPipe (rgba)</label>
+              <input class="form-input" name="mediapipe_color" value="${filter?.mediapipe?.color||'rgba(255,100,100,0.3)'}" placeholder="rgba(255,100,100,0.3)"></div>
+            <div class="form-row">
+              <div class="form-group"><label class="form-label">Thứ tự</label>
+                <input class="form-input" name="sortOrder" type="number" value="${filter?.sortOrder||0}"></div>
+              ${isEdit?`<div class="form-group"><label class="form-label">Trạng thái</label>
+                <select class="form-input" name="active">
+                  <option value="true" ${filter?.active?'selected':''}>Hiện</option>
+                  <option value="false" ${!filter?.active?'selected':''}>Ẩn</option>
+                </select></div>`:''}
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-ghost" onclick="closeModal('filter-modal')">Hủy</button>
+          <button class="btn btn-primary" onclick="saveFilter('${filter?._id||''}')">Lưu</button>
+        </div>
+      </div>
+    </div>`)
+}
+
+async function saveFilter(id) {
+  const form = document.getElementById('filter-form')
+  const fd   = new FormData(form)
+  const body = {
+    name:         fd.get('name'),
+    group:        fd.get('group'),
+    cssFilter:    fd.get('cssFilter'),
+    overlayColor: fd.get('overlayColor'),
+    sortOrder:    parseInt(fd.get('sortOrder')) || 0,
+    active:       fd.get('active') !== 'false',
+    mediapipe: {
+      type:      fd.get('mediapipe_type')      || 'none',
+      color:     fd.get('mediapipe_color')     || 'rgba(255,100,100,0.3)',
+      intensity: parseFloat(fd.get('mediapipe_intensity')) || 0.5,
+    },
+  }
+  const r = await api(id?'PUT':'POST', id?`/filters/${id}`:'/filters', body)
+  if (r.success) { toast('Đã lưu filter!'); closeModal('filter-modal'); filters() }
+  else toast(r.message,'error')
+}
+
+async function deleteFilter(id) {
+  if (!confirm('Xóa filter này?')) return
+  const r = await api('DELETE',`/filters/${id}`)
+  if (r.success) { toast('Đã xóa'); filters() }
+  else toast(r.message,'error')
+}
+
 // ── SETTINGS ──────────────────────────────────────────────────────────────
 async function settings() {
   const el = document.getElementById('page-content')
@@ -567,6 +715,28 @@ async function settings() {
                 <input class="form-input" name="bank_account" value="${data.bank_account||''}"></div>
               <div class="form-group"><label class="form-label">Tên chủ tài khoản</label>
                 <input class="form-input" name="bank_account_name" value="${data.bank_account_name||''}"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card mb-16">
+          <div class="card-header"><h3>✨ Filter ảnh</h3></div>
+          <div class="card-body">
+            <div class="form-row">
+              <div class="form-group"><label class="form-label">Bật Overlay filter</label>
+                <select class="form-input" name="filter_overlay_enabled">
+                  <option value="true"  ${(data||{}).filter_overlay_enabled  !=='false'?'selected':''}>Bật</option>
+                  <option value="false" ${(data||{}).filter_overlay_enabled  ==='false'?'selected':''}>Tắt</option>
+                </select>
+                <p class="help-text">Áp filter CSS toàn ảnh, không cần detect mặt</p>
+              </div>
+              <div class="form-group"><label class="form-label">Bật MediaPipe filter</label>
+                <select class="form-input" name="filter_mediapipe_enabled">
+                  <option value="true"  ${(data||{}).filter_mediapipe_enabled!=='false'?'selected':''}>Bật</option>
+                  <option value="false" ${(data||{}).filter_mediapipe_enabled==='false'?'selected':''}>Tắt</option>
+                </select>
+                <p class="help-text">Detect khuôn mặt, áp filter đúng vùng má/môi/da</p>
+              </div>
             </div>
           </div>
         </div>

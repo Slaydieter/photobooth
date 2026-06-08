@@ -29,6 +29,12 @@ const sessionSchema = new mongoose.Schema({
   outputs:           [outputSchema],
   driveFolderId:     { type: String, default: null },
   driveFolderName:   { type: String, default: null },
+  driveFolderUrl:    { type: String, default: null },
+  driveStatus: {
+    type: String,
+    enum: ['idle', 'uploading', 'done', 'partial'],
+    default: 'idle',
+  },
   completedAt:       { type: Date, default: null },
 }, { timestamps: true })
 

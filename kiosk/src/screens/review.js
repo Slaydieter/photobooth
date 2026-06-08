@@ -62,10 +62,37 @@ export function renderReviewScreen() {
     navigate('capture')
   }
 
-  window.goToArrange = () => {
-    const { renderArrangeScreen } = window._screens
-    renderArrangeScreen()
-    navigate('arrange')
+  window.goToArrange = async () => {
+    console.log('[Review] goToArrange called')
+    try {
+      const { data: settings } = await (await fetch('http://localhost:3001/api/settings')).json()
+      console.log('[Review] filter settings:', {
+        overlay:   settings.filter_overlay_enabled,
+        mediapipe: settings.filter_mediapipe_enabled,
+      })
+
+      // Nếu key chưa có trong DB → mặc định là true (bật)
+      const overlayOn   = settings.filter_overlay_enabled   !== 'false'
+      const mediapipeOn = settings.filter_mediapipe_enabled !== 'false'
+      console.log('[Review] overlayOn:', overlayOn, '| mediapipeOn:', mediapipeOn)
+
+      if (overlayOn || mediapipeOn) {
+        console.log('[Review] → navigate to filter')
+        const { renderFilterScreen } = window._screens
+        await renderFilterScreen()
+        navigate('filter')
+      } else {
+        console.log('[Review] → navigate to arrange (filter disabled)')
+        const { renderArrangeScreen } = window._screens
+        renderArrangeScreen()
+        navigate('arrange')
+      }
+    } catch (err) {
+      console.warn('[Review] Settings fetch error, skip filter:', err)
+      const { renderArrangeScreen } = window._screens
+      renderArrangeScreen()
+      navigate('arrange')
+    }
   }
 }
 

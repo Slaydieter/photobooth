@@ -4,8 +4,9 @@ const themeSchema = new mongoose.Schema({
   categoryId:    { type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: true },
   name:          { type: String, required: true },
   coverImage:    { type: String, default: null },
-  frontTemplate: { type: String, default: null }, // ảnh mặt trước mẫu
-  backTemplate:  { type: String, default: null }, // ảnh mặt sau mẫu
+  templateLayer:     { type: String, default: null },   // PNG đè lên ảnh khách
+  placeholderColor:  { type: String, default: '#87CEEB' }, // màu ô ảnh trống để detect
+  photoCount:    { type: Number, default: 4 },    // số ảnh mỗi tấm, config được
   pricePerCopy:  { type: Number, default: 50000 },
   sortOrder:     { type: Number, default: 0 },
   active:        { type: Boolean, default: true },

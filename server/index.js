@@ -27,6 +27,7 @@ app.use('/api/categories', require('./api/routes/categories'))
 app.use('/api/themes',     require('./api/routes/themes'))
 app.use('/api/stickers',   require('./api/routes/stickers'))
 app.use('/api/sessions',   require('./api/routes/sessions'))
+app.use('/api/filters',    require('./api/routes/filters'))
 
 // ─── Serve Kiosk App ───────────────────────────────────────────────────────
 const KIOSK_DIR = path.join(__dirname, '../kiosk/dist')
